@@ -18,6 +18,7 @@ steps:
     inputs:
       command: "build"
       arguments: |
+        --no-cache=true
         --build-arg BINGO=false
         -t $(dockerImageName):$(dockerImageTag)"
       dockerfile: "$(Build.SourcesDirectory)/Dockerfile"
