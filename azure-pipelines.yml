@@ -13,4 +13,4 @@ jobs:
   - template: deployImage/build-image.yml@templates
     parameters:
       imageName: digital-grafana
-      buildAgent: Agents On-Premise
+      buildAgent: ubuntu-latest
