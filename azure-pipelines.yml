@@ -12,6 +12,7 @@ variables:
   dockerImageTag: "latest"
 
 steps:
+  # Docker task roughly matching script at packaging/docker/build.sh
   - task: Docker@2
     displayName: Build Docker Image
     inputs:
@@ -24,7 +25,6 @@ steps:
         --build-arg RUN_SH=./run.sh \
         --no-cache=true
         -t $(dockerImageName):$(dockerImageTag)"
-      containerRegistry: none
       dockerfile: "$(Build.SourcesDirectory)/Dockerfile"
       buildContext: "$(Build.SourcesDirectory)/packaging/docker/"
     env:
