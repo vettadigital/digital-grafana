@@ -1,0 +1,16 @@
+trigger:
+  - main
+  - develop
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Vetta/platform-vetta-automation
+      ref: master
+
+jobs:
+  - template: deployImage/build-image.yml@templates
+    parameters:
+      imageName: digital-grafana
+      buildAgent: Agents On-Premise
