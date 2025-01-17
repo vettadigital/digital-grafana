@@ -45,7 +45,7 @@ RUN if grep -i -q alpine /etc/issue; then \
           binutils-gold \
           bash \
           # Install build dependencies
-          gcc g++ make git; \
+          gcc=14 g++ make git; \
     fi
 
 WORKDIR /tmp/grafana
