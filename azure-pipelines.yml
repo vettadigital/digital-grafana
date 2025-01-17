@@ -23,7 +23,7 @@ steps:
         --build-arg GO_SRC=tgz-builder \
         --build-arg JS_SRC=tgz-builder \
         --build-arg RUN_SH=./run.sh \
-        --no-cache=true
+        --no-cache=true \
         -t $(dockerImageName):$(dockerImageTag)"
       dockerfile: "$(Build.SourcesDirectory)/Dockerfile"
       buildContext: "$(Build.SourcesDirectory)/packaging/docker/"
