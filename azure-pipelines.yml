@@ -18,12 +18,12 @@ steps:
     inputs:
       command: "build"
       arguments: |
-        --build-arg BASE_IMAGE=alpine:3.18.5 \
-        --build-arg GRAFANA_TGZ=grafana-latest.linux-x64-musl.tar.gz \
-        --build-arg GO_SRC=tgz-builder \
-        --build-arg JS_SRC=tgz-builder \
-        --build-arg RUN_SH=./run.sh \
-        --no-cache=true \
+        --build-arg BASE_IMAGE=alpine:3.18.5
+        --build-arg GRAFANA_TGZ=grafana-latest.linux-x64-musl.tar.gz
+        --build-arg GO_SRC=tgz-builder
+        --build-arg JS_SRC=tgz-builder
+        --build-arg RUN_SH=./run.sh
+        --no-cache=true
         -t $(dockerImageName):$(dockerImageTag)"
       dockerfile: "$(Build.SourcesDirectory)/Dockerfile"
       buildContext: "$(Build.SourcesDirectory)/packaging/docker/"
