@@ -14,3 +14,4 @@ jobs:
     parameters:
       imageName: digital-grafana
       buildAgent: ubuntu-latest
+      npm: true
