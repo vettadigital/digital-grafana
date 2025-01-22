@@ -1,6 +1,7 @@
 import { css, cx } from '@emotion/css';
 import { PureComponent } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import { debounce } from 'lodash';
 
 import { NavModel, NavModelItem, TimeRange, PageLayoutType, locationUtil, GrafanaTheme2 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -40,6 +41,7 @@ import { getTimeSrv } from '../services/TimeSrv';
 import { explicitlyControlledMigrationPanels, autoMigrateAngular } from '../state/PanelModel';
 import { cleanUpDashboardAndVariables } from '../state/actions';
 import { initDashboard } from '../state/initDashboard';
+import {store} from 'app/store/store'
 
 import { DashboardPageRouteParams, DashboardPageRouteSearchParams } from './types';
 
@@ -121,6 +123,8 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
   declare context: GrafanaContextType;
   static contextType = GrafanaContext;
 
+  updateLocation = debounce((query) => locationService.partial(query, true), 300);
+
   private forceRouteReloadCounter = 0;
   state: State = this.getCleanState();
 
@@ -135,6 +139,15 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
     };
   }
 
+  handleFrameTasks = (event: any) => {
+    console.log('event.data:', event.data);
+    store.dispatch(
+      this.updateLocation({
+        query: event.data,
+      })
+    );
+  };
+
   componentDidMount() {
     this.initDashboard();
     this.forceRouteReloadCounter = (this.props.location.state as any)?.routeReloadCounter || 0;
@@ -147,6 +160,7 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
   closeDashboard() {
     this.props.cleanUpDashboardAndVariables();
     this.setState(this.getCleanState());
+    window.removeEventListener('message', this.handleFrameTasks);
   }
 
   initDashboard() {
@@ -167,6 +181,8 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
       accessToken: params.accessToken,
       keybindingSrv: this.context.keybindings,
     });
+
+    window.addEventListener('message', this.handleFrameTasks, false);
 
     // small delay to start live updates
     setTimeout(this.updateLiveTimer, 250);
@@ -359,6 +375,8 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
     const { editPanel, viewPanel, pageNav, sectionNav } = this.state;
     const kioskMode = getKioskMode(this.props.queryParams);
     const styles = getStyles(theme);
+
+    console.log('Dashboard carregou, msg do DashboardPage.tsx!');
 
     if (!dashboard || !pageNav || !sectionNav) {
       return <DashboardLoading initPhase={this.props.initPhase} />;
