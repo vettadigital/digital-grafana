@@ -6,22 +6,25 @@ trigger:
 
 pool:
   name: Agents On-Premise
+  demands:
+    - Agent.Name -equals agent-build-1
 
-variables:
-  dockerImageName: "digital-grafana"
-  dockerImageTag: "latest"
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Vetta/platform-vetta-automation
+      ref: master
 
 steps:
-  # Docker task roughly matching script at packaging/docker/build.sh
-  - task: Docker@2
-    displayName: Build Docker Image
-    inputs:
-      command: "build"
-      arguments: |
-        --no-cache=true
-        --build-arg BINGO=false
-        -t $(dockerImageName):$(dockerImageTag)"
-      dockerfile: "$(Build.SourcesDirectory)/Dockerfile"
-      buildContext: "$(Build.SourcesDirectory)"
-    env:
-      DOCKER_BUILDKIT: "1"
+  - template: tasks/docker-build-and-push@templates
+    parameters:
+      imageName: digital-grafana-base
+      majorMinor: 11.5.0-pre
+      containerRegistryConnection: "vettadigitalcontainers-Platform"
+
+  - template: tasks/_docker-build@templates
+    parameters:
+      imageName: digital-grafana-base
+      majorMinor: 11.5.0-pre
+      containerRegistryConnection: "vettadigitalcontainers-Platform"
