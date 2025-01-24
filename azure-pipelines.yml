@@ -20,11 +20,5 @@ steps:
   - template: tasks/docker-build-and-push.yml@templates
     parameters:
       imageName: digital-grafana-base
-      majorMinor: 11.5.0-pre
-      containerRegistryConnection: "vettadigitalcontainers-Platform"
-
-  - template: tasks/_docker-build@templates
-    parameters:
-      imageName: digital-grafana-base
-      majorMinor: 11.5.0-pre
-      containerRegistryConnection: "vettadigitalcontainers-Platform"
+      imageTags: "11.5.0-pre,latest"
+      containerRegistry: "vettadigitalcontainers-Platform"
