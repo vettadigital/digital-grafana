@@ -18,10 +18,17 @@ resources:
 
 steps:
   - checkout: self
-    fetchDepth: "1"
+    fetchDepth: 1
 
-  - template: tasks/docker-build-and-push.yml@templates
+  - template: tasks/_docker-build.yml@templates
     parameters:
-      imageName: digital-grafana-base
+      imageName: "digital-grafana-base"
+      imageTags: "11.5.0-pre,latest"
+      containerRegistry: "vettadigitalcontainers-Platform"
+      enableCache: false
+
+  - template: tasks/_docker-push.yml@templates
+    parameters:
+      imageName: "digital-grafana-base"
       imageTags: "11.5.0-pre,latest"
       containerRegistry: "vettadigitalcontainers-Platform"
