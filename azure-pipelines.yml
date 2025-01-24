@@ -18,7 +18,7 @@ resources:
 
 steps:
   - checkout: self
-    depth: 1
+    fetchDepth: "1"
 
   - template: tasks/docker-build-and-push.yml@templates
     parameters:
