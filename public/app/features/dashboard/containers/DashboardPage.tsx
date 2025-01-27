@@ -2,8 +2,9 @@ import { css, cx } from '@emotion/css';
 import { PureComponent } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { debounce } from 'lodash';
+import appEvents from 'app/core/app_events';
 
-import { NavModel, NavModelItem, TimeRange, PageLayoutType, locationUtil, GrafanaTheme2 } from '@grafana/data';
+import { NavModel, NavModelItem, TimeRange, PageLayoutType, locationUtil, GrafanaTheme2, AppEvents } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { config, locationService } from '@grafana/runtime';
 import { Themeable2, withTheme2 } from '@grafana/ui';
@@ -140,7 +141,8 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
   }
 
   handleFrameTasks = (event: any) => {
-    console.log('event.data:', event.data);
+    console.info('event.data:', event.data);
+    appEvents.emit(AppEvents.alertInfo, [`event.data: ${JSON.stringify(event.data)}`]);
     store.dispatch(
       this.updateLocation({
         query: event.data,
@@ -376,7 +378,8 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
     const kioskMode = getKioskMode(this.props.queryParams);
     const styles = getStyles(theme);
 
-    console.log('Dashboard carregou, msg do DashboardPage.tsx!');
+    console.info('Dashboard carregou, msg do DashboardPage.tsx!');
+    appEvents.emit(AppEvents.alertInfo, ['Dashboard carregou, msg do DashboardPage.tsx!']);
 
     if (!dashboard || !pageNav || !sectionNav) {
       return <DashboardLoading initPhase={this.props.initPhase} />;
