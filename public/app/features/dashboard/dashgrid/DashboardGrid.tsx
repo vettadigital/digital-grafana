@@ -318,6 +318,8 @@ export class DashboardGrid extends PureComponent<Props, State> {
 
     const draggable = width <= config.theme2.breakpoints.values.md ? false : isEditable;
 
+    console.info('aqui?');
+
     // pos: rel + z-index is required to create a new stacking context to contain
     // the escalating z-indexes of the panels
     return (
@@ -330,7 +332,7 @@ export class DashboardGrid extends PureComponent<Props, State> {
           display: this.props.editPanel ? 'none' : undefined,
         }}
       >
-        <div style={{ width: width, height: '100%' }} ref={this.onGetWrapperDivRef}>
+        <div id="testeeee" style={{ width: width, height: '100%' }} ref={this.onGetWrapperDivRef}>
           <ReactGridLayout
             width={width}
             isDraggable={draggable}
