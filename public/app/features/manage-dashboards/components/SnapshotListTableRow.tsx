@@ -24,7 +24,7 @@ const SnapshotListTableRowComponent = ({ snapshot, onRemove }: Props) => {
   const isEmbedded = window.self !== window.top;
 
   if (isEmbedded) {
-    const pathSegments = window.location.pathname.split('/');
+    const pathSegments = String(url).split('/');
     const id = pathSegments[pathSegments.length - 1];
     newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
   }

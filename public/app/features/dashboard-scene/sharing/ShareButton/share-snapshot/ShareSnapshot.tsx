@@ -175,13 +175,10 @@ const UpsertSnapshotActions = ({
   const isEmbedded = window.self !== window.top;
 
   if (isEmbedded) {
-    const pathSegments = window.location.pathname.split('/');
+    const pathSegments = url.split('/');
     const id = pathSegments[pathSegments.length - 1];
-    console.log({ pathSegments });
     newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
   }
-
-  console.log({ url, newUrl });
 
   return (
     <Stack justifyContent="flex-start" gap={1} direction={{ xs: 'column', sm: 'row' }}>
