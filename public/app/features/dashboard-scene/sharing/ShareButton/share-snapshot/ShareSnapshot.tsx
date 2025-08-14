@@ -171,7 +171,14 @@ const UpsertSnapshotActions = ({
     ? ''
     : t('snapshot.share.delete-permission-tooltip', "You don't have permission to delete snapshots");
 
-  console.log({ url });
+  let newUrl = url;
+  const isEmbedded = window.self !== window.top;
+
+  if (isEmbedded) {
+    const pathSegments = window.location.pathname.split('/');
+    const id = pathSegments[pathSegments.length - 1];
+    newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
+  }
 
   return (
     <Stack justifyContent="flex-start" gap={1} direction={{ xs: 'column', sm: 'row' }}>
@@ -179,7 +186,7 @@ const UpsertSnapshotActions = ({
         icon="link"
         variant="primary"
         fill="outline"
-        getText={() => url}
+        getText={() => newUrl}
         data-testid={selectors.copyUrlButton}
       >
         <Trans i18nKey="snapshot.share.copy-link-button">Copy link</Trans>
