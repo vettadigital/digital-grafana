@@ -19,6 +19,19 @@ const SnapshotListTableRowComponent = ({ snapshot, onRemove }: Props) => {
   const deleteTooltip = hasDeletePermission
     ? ''
     : t('snapshot.share.delete-permission-tooltip', "You don't have permission to delete snapshots");
+
+  console.log({ url });
+
+  const isEmbedded = window.self !== window.top;
+
+  if (isEmbedded) {
+    const pathSegments = window.location.pathname.split('/');
+    const id = pathSegments[pathSegments.length - 1];
+
+    const newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
+    console.log({ newUrl });
+  }
+
   return (
     <tr>
       <td>

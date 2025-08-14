@@ -32,10 +32,6 @@ function ShareSnapshotRenderer({ model }: SceneComponentProps<ShareSnapshot>) {
 
   const isEmbeddedInIframe = window.self !== window.top;
 
-  console.log(window.location);
-
-  console.log({ isEmbeddedInIframe });
-
   const { snapshotName, snapshotSharingOptions, selectedExpireOption, panelRef, onDismiss, dashboardRef } =
     model.useState();
 
@@ -115,7 +111,11 @@ function ShareSnapshotRenderer({ model }: SceneComponentProps<ShareSnapshot>) {
                 />
               )
             )}
-            <TextLink icon="external-link-alt" href="/dashboard/snapshots" external>
+            <TextLink
+              icon="external-link-alt"
+              href={isEmbeddedInIframe ? '/performance/snapshots' : '/dashboard/snapshots'}
+              external
+            >
               {t('snapshot.share.view-all-button', 'View all snapshots')}
             </TextLink>
           </Stack>
@@ -170,6 +170,8 @@ const UpsertSnapshotActions = ({
   const deleteTooltip = hasDeletePermission
     ? ''
     : t('snapshot.share.delete-permission-tooltip', "You don't have permission to delete snapshots");
+
+  console.log({ url });
 
   return (
     <Stack justifyContent="flex-start" gap={1} direction={{ xs: 'column', sm: 'row' }}>
