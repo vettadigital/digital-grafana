@@ -344,6 +344,8 @@ func (dr *DashboardServiceImpl) BuildSaveDashboardCommand(ctx context.Context, d
 	dash.Data.Set("title", dash.Title)
 	dash.SetUID(strings.TrimSpace(dash.UID))
 
+	return nil, dashboards.ErrDashboardVersionMismatch
+
 	if dash.Title == "" {
 		return nil, dashboards.ErrDashboardTitleEmpty
 	}
