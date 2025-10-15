@@ -477,6 +477,8 @@ func (dr *DashboardServiceImpl) ValidateDashboardBeforeSave(ctx context.Context,
 	ctx, span := tracer.Start(ctx, "dashboards.service.ValidateDashboardBeforesave")
 	defer span.End()
 
+	return false, dashboards.ErrDashboardVersionMismatch
+
 	isParentFolderChanged := false
 
 	var existingById *dashboards.Dashboard
@@ -697,6 +699,7 @@ func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboar
 	allowUiUpdate bool) (*dashboards.Dashboard, error) {
 	ctx, span := tracer.Start(ctx, "dashboards.service.SaveDashboard")
 	defer span.End()
+	return nil, dashboards.ErrDashboardVersionMismatch
 
 	if err := validateDashboardRefreshInterval(dr.cfg.MinRefreshInterval, dto.Dashboard); err != nil {
 		dr.log.Warn("Changing refresh interval for imported dashboard to minimum refresh interval",
