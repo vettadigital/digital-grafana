@@ -22,12 +22,12 @@ steps:
   - template: tasks/_docker-build.yml@templates
     parameters:
       imageName: "digital-dashboard-base"
-      imageTags: "12.3.0,beta"
+      imageTags: "12.2.0,beta"
       containerRegistry: "vettadigitalcontainers-Platform"
       enableCache: false
 
   - template: tasks/_docker-push.yml@templates
     parameters:
       imageName: "digital-dashboard-base"
-      imageTags: "12.3.0,beta"
+      imageTags: "12.2.0,beta"
       containerRegistry: "vettadigitalcontainers-Platform"
