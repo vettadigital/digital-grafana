@@ -26,11 +26,11 @@ import { useGetResourceRepositoryView } from 'app/features/provisioning/hooks/us
 import { getReadOnlyTooltipText } from 'app/features/provisioning/utils/repository';
 import { useSelector } from 'app/types/store';
 
-import { shareDashboardType } from '../../dashboard/components/ShareModal/utils';
+// import { shareDashboardType } from '../../dashboard/components/ShareModal/utils';
 import { selectFolderRepository } from '../../provisioning/utils/selectors';
 import { PanelEditor, buildPanelEditScene } from '../panel-edit/PanelEditor';
 import ExportButton from '../sharing/ExportButton/ExportButton';
-import ShareButton from '../sharing/ShareButton/ShareButton';
+// import ShareButton from '../sharing/ShareButton/ShareButton';
 import { DashboardInteractions } from '../utils/interactions';
 import { DynamicDashNavButtonModel, dynamicDashNavActions } from '../utils/registerDynamicDashNavAction';
 import { isLibraryPanel } from '../utils/utils';
@@ -90,6 +90,12 @@ export function ToolbarActions({ dashboard }: Props) {
   const { isReadOnlyRepo, repoType } = useGetResourceRepositoryView({
     folderName: meta.folderUid,
   });
+
+  const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
+
+  if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
+    dashboard.onEnterEditMode();
+  }
 
   if (!isEditingPanel) {
     // This adds the presence indicators in enterprise
@@ -322,26 +328,26 @@ export function ToolbarActions({ dashboard }: Props) {
   });
 
   const showShareButton = uid && !isEditing && !meta.isSnapshot && !isPlaying;
-  toolbarActions.push({
-    group: 'main-buttons',
-    condition: !config.featureToggles.newDashboardSharingComponent && showShareButton,
-    render: () => (
-      <Button
-        key="share-dashboard-button"
-        tooltip={t('dashboard.toolbar.share.tooltip', 'Share dashboard')}
-        size="sm"
-        className={styles.buttonWithExtraMargin}
-        fill="outline"
-        onClick={() => {
-          DashboardInteractions.toolbarShareClick();
-          locationService.partial({ shareView: shareDashboardType.link });
-        }}
-        data-testid={selectors.components.NavToolbar.shareDashboard}
-      >
-        <Trans i18nKey="dashboard.toolbar.share.label">Share</Trans>
-      </Button>
-    ),
-  });
+  // toolbarActions.push({
+  //   group: 'main-buttons',
+  //   condition: !config.featureToggles.newDashboardSharingComponent && showShareButton,
+  //   render: () => (
+  //     <Button
+  //       key="share-dashboard-button"
+  //       tooltip={t('dashboard.toolbar.share.tooltip', 'Share dashboard')}
+  //       size="sm"
+  //       className={styles.buttonWithExtraMargin}
+  //       fill="outline"
+  //       onClick={() => {
+  //         DashboardInteractions.toolbarShareClick();
+  //         locationService.partial({ shareView: shareDashboardType.link });
+  //       }}
+  //       data-testid={selectors.components.NavToolbar.shareDashboard}
+  //     >
+  //       <Trans i18nKey="dashboard.toolbar.share.label">Share</Trans>
+  //     </Button>
+  //   ),
+  // });
 
   toolbarActions.push({
     group: 'main-buttons',
@@ -395,11 +401,11 @@ export function ToolbarActions({ dashboard }: Props) {
     render: () => <ExportButton key="new-export-dashboard-button" dashboard={dashboard} />,
   });
 
-  toolbarActions.push({
-    group: 'new-share-dashboard-buttons',
-    condition: config.featureToggles.newDashboardSharingComponent && showShareButton,
-    render: () => <ShareButton key="new-share-dashboard-button" dashboard={dashboard} />,
-  });
+  // toolbarActions.push({
+  //   group: 'new-share-dashboard-buttons',
+  //   condition: config.featureToggles.newDashboardSharingComponent && showShareButton,
+  //   render: () => <ShareButton key="new-share-dashboard-button" dashboard={dashboard} />,
+  // });
 
   toolbarActions.push({
     group: 'settings',
@@ -421,23 +427,23 @@ export function ToolbarActions({ dashboard }: Props) {
     ),
   });
 
-  toolbarActions.push({
-    group: 'main-buttons',
-    condition: isEditing && !isNew && isShowingDashboard,
-    render: () => (
-      <Button
-        onClick={() => dashboard.exitEditMode({ skipConfirm: false })}
-        tooltip={t('dashboard.toolbar.exit-edit-mode.tooltip', 'Exits edit mode and discards unsaved changes')}
-        size="sm"
-        key="discard"
-        fill="text"
-        variant="primary"
-        data-testid={selectors.components.NavToolbar.editDashboard.exitButton}
-      >
-        <Trans i18nKey="dashboard.toolbar.exit-edit-mode.label">Exit edit</Trans>
-      </Button>
-    ),
-  });
+  // toolbarActions.push({
+  //   group: 'main-buttons',
+  //   condition: isEditing && !isNew && isShowingDashboard,
+  //   render: () => (
+  //     <Button
+  //       onClick={() => dashboard.exitEditMode({ skipConfirm: false })}
+  //       tooltip={t('dashboard.toolbar.exit-edit-mode.tooltip', 'Exits edit mode and discards unsaved changes')}
+  //       size="sm"
+  //       key="discard"
+  //       fill="text"
+  //       variant="primary"
+  //       data-testid={selectors.components.NavToolbar.editDashboard.exitButton}
+  //     >
+  //       <Trans i18nKey="dashboard.toolbar.exit-edit-mode.label">Exit edit</Trans>
+  //     </Button>
+  //   ),
+  // });
 
   toolbarActions.push({
     group: 'main-buttons',

@@ -15,6 +15,14 @@ import { AddNewDataSourceButton } from './AddNewDataSourceButton';
 import { DataSourceCard } from './DataSourceCard';
 import { INTERACTION_EVENT_NAME, INTERACTION_ITEM } from './DataSourcePicker';
 import { getDataSourceCompareFn, isDataSourceMatch } from './utils';
+import { loadUrlToken } from 'app/core/utils/urlToken';
+
+function decodeJWT(token: string) {
+  const [, payload] = token.split('.');
+  const decodedPayload = atob(payload);
+
+  return JSON.parse(decodedPayload);
+}
 
 /**
  * Component props description for the {@link DataSourceList}
@@ -78,7 +86,17 @@ export function DataSourceList(props: DataSourceListProps) {
   const [recentlyUsedDataSources, pushRecentlyUsedDataSource] = useRecentlyUsedDataSources();
   const favoriteDataSources = useFavoriteDatasources();
 
-  const filteredDataSources = props.filter ? dataSources.filter(props.filter) : dataSources;
+  let filteredDataSources = props.filter ? dataSources.filter(props.filter) : dataSources;
+
+  const token = loadUrlToken();
+  if (token) {
+    const payload = decodeJWT(token);
+    const hasPermission = payload?.permissions?.includes('grafana_postgresql_datasource:WRITE') || payload?.is_admin;
+
+    if (!hasPermission) {
+      filteredDataSources = filteredDataSources.filter((ds: any) => ds.type !== 'grafana-postgresql-datasource');
+    }
+  }
 
   return (
     <div

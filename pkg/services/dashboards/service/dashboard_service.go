@@ -816,13 +816,13 @@ func (dr *DashboardServiceImpl) ValidateDashboardBeforeSave(ctx context.Context,
 	}
 
 	// check for is someone else has written in between
-	if dashboard.Version != existing.Version {
-		if overwrite {
-			dashboard.SetVersion(existing.Version)
-		} else {
-			return isParentFolderChanged, dashboards.ErrDashboardVersionMismatch
-		}
-	}
+	// if dashboard.Version != existing.Version {
+	// 	if overwrite {
+	// 		dashboard.SetVersion(existing.Version)
+	// 	} else {
+	// 		return isParentFolderChanged, dashboards.ErrDashboardVersionMismatch
+	// 	}
+	// }
 
 	// do not allow plugin dashboard updates without overwrite flag
 	if existing.PluginID != "" && !overwrite {

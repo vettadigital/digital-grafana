@@ -13,6 +13,24 @@ import { DashboardSource, ImportDashboardDTO } from '../state/reducers';
 
 import { ImportDashboardForm } from './ImportDashboardForm';
 
+function getAssetIdFromIframe() {
+  const iframe = window.parent.document.querySelector('iframe');
+
+  if (!iframe) {
+    console.warn('No iframe found.');
+    return null;
+  }
+
+  const src = iframe.src;
+  if (!src) {
+    console.warn('The iframe has no src attribute.');
+    return null;
+  }
+
+  const params = new URLSearchParams(new URL(src).search);
+  return params.get('assetId');
+}
+
 const IMPORT_FINISHED_EVENT_NAME = 'dashboard_import_imported';
 
 const mapStateToProps = (state: StoreState) => {
@@ -49,6 +67,12 @@ class ImportDashboardOverviewUnConnected extends PureComponent<Props, State> {
     reportInteraction(IMPORT_FINISHED_EVENT_NAME);
 
     this.props.importDashboard(form);
+     const uid = form.uid;
+
+    setTimeout(() => {
+      const assetId = getAssetIdFromIframe();
+      window.parent.postMessage({ source: 'grafana-dashboard-integration-event', payload: { uid, assetId } }, '*');
+    }, 1000);
   };
 
   onCancel = () => {
