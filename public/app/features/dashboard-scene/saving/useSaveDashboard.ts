@@ -73,8 +73,9 @@ function appendReservedVariablesToUrlDataLinks(saveModel: any) {
                       persistingParams.set(variable, currentUrlQueryParams.get(variable)!);
                     }
                   });
-                  console.log('Updated link:', link.url);
-                  link.url = `${link.url.split('?')[0]}?${persistingParams.toString()}`;
+                  console.log('Updated link:', `${link.url.split('?')[0]}?${persistingParams.toString()}`);
+                  console.log('Updated link decoded:', decodeURI(`${link.url.split('?')[0]}?${persistingParams.toString()}`));
+                  link.url = decodeURI( `${link.url.split('?')[0]}?${persistingParams.toString()}`);
                 }
                 return link;
               });
