@@ -1,3 +1,4 @@
+
 import { useAsyncFn } from 'react-use';
 
 import { locationUtil } from '@grafana/data';
@@ -15,6 +16,7 @@ import { useDispatch } from 'app/types/store';
 
 import { updateDashboardUidLastUsedDatasource } from '../../dashboard/utils/dashboard';
 import { DashboardScene } from '../scene/DashboardScene';
+import { get } from './getDashboardChanges';
 
 function applyChrononVariablesToTargets(saveModel: any) {
   if (!Array.isArray(saveModel?.panels) || !Array.isArray(saveModel?.templating?.list)) {
@@ -38,6 +40,57 @@ function applyChrononVariablesToTargets(saveModel: any) {
   return { ...saveModel, panels: updatedPanels };
 }
 
+
+
+export function getCurrentQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  // const result: Record<string, string> = {};
+  // params.forEach((value, key) => {
+  //   result[key] = value;
+  // });
+  return params;
+}
+
+function appendReservedVariablesToUrlDataLinks(saveModel: any) {
+  if (!Array.isArray(saveModel?.panels)) {
+    return saveModel;
+  }
+  const reservedVariables = ['var-thingId', 'var-resample', 'var-appDomain','assetId','mode'];
+  const currentUrlQueryParams = getCurrentQueryParams();
+
+  const updatedPanels = saveModel.panels.map((panel: any) => {
+    if (panel?.fieldConfig?.overrides && Array.isArray(panel.fieldConfig.overrides)) {
+      panel.fieldConfig.overrides = panel.fieldConfig.overrides.map((override: any) => {
+        if (override?.properties && Array.isArray(override.properties)) {
+          override.properties = override.properties.map((property: any) => {
+            if (property?.id === 'links' && Array.isArray(property.value)) {
+              property.value = property.value.map((link: any) => {
+                if (link?.url && typeof link.url === 'string' && link.url.includes('?')) {
+                  const persistingQueryString = link.url.split('?')[1];
+                  const persistingParams = new URLSearchParams(persistingQueryString);
+                  reservedVariables.forEach((variable) => {
+                    if (currentUrlQueryParams.has(variable)) {
+                      persistingParams.set(variable, currentUrlQueryParams.get(variable)!);
+                    }
+                  });
+                  console.log('Updated link:', link.url);
+                  link.url = `${link.url.split('?')[0]}?${persistingParams.toString()}`;
+                }
+                return link;
+              });
+            }
+            return property;
+          });
+        }
+        return override;
+      });
+    }
+    return panel; 
+  })
+
+  return { ...saveModel, panels: updatedPanels };
+}
+
 export function useSaveDashboard(isCopy = false) {
   const dispatch = useDispatch();
   const notifyApp = useAppNotification();
@@ -55,6 +108,7 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
         saveModel = applyChrononVariablesToTargets(saveModel);
+        saveModel = appendReservedVariablesToUrlDataLinks(saveModel);
 
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({

@@ -91,7 +91,9 @@ export function ToolbarActions({ dashboard }: Props) {
     folderName: meta.folderUid,
   });
 
-  const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode');
+  const isViewing = mode !== 'edit';
 
   if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
     dashboard.onEnterEditMode();
