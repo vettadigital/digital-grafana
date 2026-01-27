@@ -94,6 +94,7 @@ export function ToolbarActions({ dashboard }: Props) {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get('mode');
   const isViewing = mode !== 'edit';
+  console.log({isViewing, mode, params: params.toString()});
 
   if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
     dashboard.onEnterEditMode();
