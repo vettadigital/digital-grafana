@@ -109,7 +109,7 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
         saveModel = applyChrononVariablesToTargets(saveModel);
-        saveModel = appendReservedVariablesToUrlDataLinks(saveModel);
+        // saveModel = appendReservedVariablesToUrlDataLinks(saveModel);
 
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({

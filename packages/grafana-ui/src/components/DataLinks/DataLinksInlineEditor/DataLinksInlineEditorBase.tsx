@@ -12,6 +12,31 @@ import { Modal } from '../../Modal/Modal';
 
 import { DataLinksListItemBase } from './DataLinksListItemBase';
 
+function getCurrentQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  return params;
+}
+
+function appendReservedVariablesToUrlDataLinks(url: string) {
+  //append URL reserved variables
+  let result = url;
+  const reservedVariables = ['var-thingId', 'var-resample', 'var-appDomain','assetId','mode'];
+  if (url && typeof url === 'string' && url.includes('?')) {
+    const persistingQueryString = url.split('?')[1];
+    const persistingParams = new URLSearchParams(persistingQueryString);
+    const currentUrlQueryParams = getCurrentQueryParams();
+    reservedVariables.forEach((variable) => {
+      if (currentUrlQueryParams.has(variable)) {
+        persistingParams.set(variable, currentUrlQueryParams.get(variable)!);
+      }
+    });
+    console.log('Updated link:', `${url.split('?')[0]}?${persistingParams.toString()}`);
+    console.log('Updated link decoded:', decodeURI(`${url.split('?')[0]}?${persistingParams.toString()}`));
+    result = decodeURI( `${url.split('?')[0]}?${persistingParams.toString()}`);
+  }
+  return result;
+}
+
 export interface DataLinksInlineEditorBaseProps<T extends DataLink | Action> {
   type: 'link' | 'action';
   items?: T[];
@@ -68,6 +93,8 @@ export function DataLinksInlineEditorBase<T extends DataLink | Action>({
         }
       });
     }
+
+    item.url = appendReservedVariablesToUrlDataLinks(item.url ?? '');
 
     const update = cloneDeep(itemsSafe);
     update[index] = item;
