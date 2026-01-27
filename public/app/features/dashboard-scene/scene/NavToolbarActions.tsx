@@ -96,7 +96,9 @@ export function ToolbarActions({ dashboard }: Props) {
   const isViewing = mode !== 'edit';
   console.log({isViewing, mode, params: params.toString()});
 
+  console.log({notIsViewing: !isViewing, notIsEditing: !isEditing, canEdit: dashboard.canEditDashboard(), notIsViewingPanel: !isViewingPanel, notIsPlaying: !isPlaying, editable});
   if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
+    console.log('Entering edit mode');
     dashboard.onEnterEditMode();
   }
 
