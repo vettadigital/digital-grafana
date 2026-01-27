@@ -31,8 +31,8 @@ function appendReservedVariablesToUrlDataLinks(url: string) {
       }
     });
     console.log('Updated link:', `${url.split('?')[0]}?${persistingParams.toString()}`);
-    console.log('Updated link decoded:', decodeURI(`${url.split('?')[0]}?${persistingParams.toString()}`));
-    result = decodeURI( `${url.split('?')[0]}?${persistingParams.toString()}`);
+    console.log('Updated link decoded:', decodeURIComponent(`${url.split('?')[0]}?${persistingParams.toString()}`));
+    result = decodeURIComponent( `${url.split('?')[0]}?${persistingParams.toString()}`);
   }
   return result;
 }
