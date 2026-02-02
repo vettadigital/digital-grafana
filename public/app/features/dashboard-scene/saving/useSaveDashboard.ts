@@ -59,8 +59,7 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
         saveModel = applyChrononVariablesToTargets(saveModel);
-        validateDescription(saveModel);
-
+        
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({
             isNew: options.isNew,
@@ -69,7 +68,9 @@ export function useSaveDashboard(isCopy = false) {
             copyTags: options.copyTags,
           });
         }
-
+        
+        validateDescription(saveModel);
+        
         const result = await saveDashboardRtkQuery({
           dashboard: saveModel,
           folderUid: options.folderUid,
