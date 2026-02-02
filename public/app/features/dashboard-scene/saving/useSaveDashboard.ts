@@ -36,6 +36,12 @@ function applyChrononVariablesToTargets(saveModel: any) {
   return { ...saveModel, panels: updatedPanels };
 }
 
+function validateDescription(saveModel: any) {
+  if (saveModel.description === '') {
+    delete saveModel.description;
+  }
+}
+
 export function useSaveDashboard(isCopy = false) {
   const dispatch = useDispatch();
   const notifyApp = useAppNotification();
@@ -53,6 +59,7 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
         saveModel = applyChrononVariablesToTargets(saveModel);
+        validateDescription(saveModel);
 
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({
