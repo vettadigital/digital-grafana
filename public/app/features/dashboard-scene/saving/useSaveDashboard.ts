@@ -36,6 +36,12 @@ function applyChrononVariablesToTargets(saveModel: any) {
   return { ...saveModel, panels: updatedPanels };
 }
 
+function validateDescription(saveModel: any) {
+  if (saveModel.description === '') {
+    delete saveModel.description;
+  }
+}
+
 export function useSaveDashboard(isCopy = false) {
   const dispatch = useDispatch();
   const notifyApp = useAppNotification();
@@ -53,7 +59,7 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
         saveModel = applyChrononVariablesToTargets(saveModel);
-
+        
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({
             isNew: options.isNew,
@@ -62,7 +68,9 @@ export function useSaveDashboard(isCopy = false) {
             copyTags: options.copyTags,
           });
         }
-
+        
+        validateDescription(saveModel);
+        
         const result = await saveDashboardRtkQuery({
           dashboard: saveModel,
           folderUid: options.folderUid,
