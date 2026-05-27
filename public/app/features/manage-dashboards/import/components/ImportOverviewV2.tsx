@@ -13,6 +13,7 @@ import { applyV2Inputs } from '../utils/inputs';
 
 import { GcomDashboardInfo } from './GcomDashboardInfo';
 import { ImportDashboardFormV2 } from './ImportDashboardFormV2';
+import { getAssetIdFromIframe } from './ImportOverview';
 
 const IMPORT_FINISHED_EVENT_NAME = 'dashboard_import_imported';
 
@@ -34,6 +35,13 @@ export function ImportOverviewV2({ dashboard, dashboardUid, inputs, meta, source
 
   async function onSubmit(form: ImportFormDataV2) {
     reportInteraction(IMPORT_FINISHED_EVENT_NAME);
+
+    const uid = form.uid;
+    
+    setTimeout(() => {
+      const assetId = getAssetIdFromIframe();
+      window.parent.postMessage({ source: 'grafana-dashboard-integration-event', payload: { uid, assetId } }, '*');
+    }, 1000);
 
     try {
       const dashboardToSave: DashboardV2Spec = hasFloatGridItems

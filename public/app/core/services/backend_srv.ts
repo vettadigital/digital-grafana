@@ -512,12 +512,12 @@ export class BackendSrv implements BackendService {
                 }
 
                 let authChecker = this.loginPing();
-                if (hasSessionExpiry()) {
-                  const expired = getSessionExpiry() * 1000 < Date.now();
-                  if (expired) {
-                    authChecker = this.rotateToken();
-                  }
-                }
+                // if (hasSessionExpiry()) {
+                //   const expired = getSessionExpiry() * 1000 < Date.now();
+                //   if (expired) {
+                //     authChecker = this.rotateToken();
+                //   }
+                // }
 
                 return from(authChecker).pipe(
                   catchError((err) => {

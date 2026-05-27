@@ -31,6 +31,8 @@ function ShareSnapshotRenderer({ model }: SceneComponentProps<ShareSnapshot>) {
   const [showDeletedAlert, setShowDeletedAlert] = useState(false);
   const [step, setStep] = useState(1);
 
+  const isEmbeddedInIframe = window.self !== window.top;
+
   const { snapshotName, snapshotSharingOptions, selectedExpireOption, panelRef, onDismiss, dashboardRef } =
     model.useState();
 
@@ -110,8 +112,12 @@ function ShareSnapshotRenderer({ model }: SceneComponentProps<ShareSnapshot>) {
                 />
               )
             )}
-            <TextLink icon="external-link-alt" href={`${config.appSubUrl || ''}/dashboard/snapshots`} external>
-              {t('snapshot.share.view-all-button', 'View all snapshots')}
+            <TextLink 
+              icon="external-link-alt" 
+              href={isEmbeddedInIframe ? '/performance/snapshots' :`${config.appSubUrl || ''}/dashboard/snapshots`} 
+              external
+            >
+                {t('snapshot.share.view-all-button', 'View all snapshots')}
             </TextLink>
           </Stack>
         </UpsertSnapshot>
@@ -166,13 +172,22 @@ const UpsertSnapshotActions = ({
     ? ''
     : t('snapshot.share.delete-permission-tooltip', "You don't have permission to delete snapshots");
 
+  let newUrl = url;
+  const isEmbedded = window.self !== window.top;
+
+  if (isEmbedded) {
+    const pathSegments = url.split('/');
+    const id = pathSegments[pathSegments.length - 1];
+    newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
+  }
+
   return (
     <Stack justifyContent="flex-start" gap={1} direction={{ xs: 'column', sm: 'row' }}>
       <ClipboardButton
         icon="link"
         variant="primary"
         fill="outline"
-        getText={() => url}
+        getText={() => newUrl}
         onClipboardCopy={() => reportInteraction('sharing_publish_snapshot')}
         data-testid={selectors.copyUrlButton}
       >

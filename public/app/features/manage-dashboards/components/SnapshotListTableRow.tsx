@@ -19,13 +19,23 @@ const SnapshotListTableRowComponent = ({ snapshot, onRemove }: Props) => {
   const deleteTooltip = hasDeletePermission
     ? ''
     : t('snapshot.share.delete-permission-tooltip', "You don't have permission to delete snapshots");
+
+  let newUrl = url;
+  const isEmbedded = window.self !== window.top;
+
+  if (isEmbedded) {
+    const pathSegments = String(url).split('/');
+    const id = pathSegments[pathSegments.length - 1];
+    newUrl = `${window.location.origin}/performance/snapshots?id=${id}`;
+  }
+
   return (
     <tr>
       <td>
-        <a href={url}>{snapshot.name}</a>
+        <a href={newUrl}>{snapshot.name}</a>
       </td>
       <td>
-        <a href={url}>{url}</a>
+        <a href={newUrl}>{newUrl}</a>
       </td>
       <td>
         {snapshot.external && (
@@ -35,7 +45,7 @@ const SnapshotListTableRowComponent = ({ snapshot, onRemove }: Props) => {
         )}
       </td>
       <td className="text-center">
-        <LinkButton href={url} variant="secondary" size="sm" icon="eye">
+        <LinkButton href={newUrl} variant="secondary" size="sm" icon="eye">
           <Trans i18nKey="snapshot.view-button">View</Trans>
         </LinkButton>
       </td>

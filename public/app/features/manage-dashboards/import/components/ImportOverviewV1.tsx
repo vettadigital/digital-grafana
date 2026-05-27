@@ -15,6 +15,7 @@ import { applyV1Inputs, stripExportMetadata } from '../utils/inputs';
 
 import { GcomDashboardInfo } from './GcomDashboardInfo';
 import { ImportForm } from './ImportForm';
+import { getAssetIdFromIframe } from './ImportOverview';
 
 const IMPORT_FINISHED_EVENT_NAME = 'dashboard_import_imported';
 
@@ -33,6 +34,13 @@ export function ImportOverviewV1({ dashboard, inputs, meta, source, folderUid, o
 
   async function onSubmit(form: ImportDashboardDTO) {
     reportInteraction(IMPORT_FINISHED_EVENT_NAME);
+
+    const uid = form.uid;
+
+    setTimeout(() => {
+      const assetId = getAssetIdFromIframe();
+      window.parent.postMessage({ source: 'grafana-dashboard-integration-event', payload: { uid, assetId } }, '*');
+    }, 1000);
 
     try {
       const dashboardWithDataSources = applyV1Inputs(dashboard, inputs, form);

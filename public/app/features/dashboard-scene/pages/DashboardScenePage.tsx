@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { type Params, useParams } from 'react-router-dom-v5-compat';
 import { usePrevious } from 'react-use';
 
@@ -30,6 +30,14 @@ import { preserveDashboardSceneStateInLocalStorage } from '../utils/dashboardSes
 
 import { getDashboardScenePageStateManager } from './DashboardScenePageStateManager';
 import { shouldHideDashboardKioskFooter } from './utils';
+import { DashboardScene } from '../scene/DashboardScene';
+
+type FilterEvent = {
+  data: {
+    source: string;
+    payload: object;
+  };
+};
 
 export interface Props
   extends Omit<GrafanaRouteComponentProps<DashboardPageRouteParams, DashboardPageRouteSearchParams>, 'match'> {}
@@ -43,9 +51,33 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
   const prevMatch = usePrevious({ params });
   const stateManager = getDashboardScenePageStateManager();
   const { dashboard, isLoading, loadError } = stateManager.useState();
+  const dashboardRef = useRef<DashboardScene>();
   // After scene migration is complete and we get rid of old dashboard we should refactor dashboardWatcher so this route reload is not need
   const routeReloadCounter = (location.state as any)?.routeReloadCounter;
   const prevParams = useRef<Params<string>>(params);
+
+  dashboardRef.current = dashboard;
+
+  const handleFilterDashboard = useCallback(({ data }: FilterEvent) => {
+    if (data?.source !== 'event-filter-dashboard') return;
+
+    const params = locationService.getSearchObject();
+    const urlParams = { ...params, ...data.payload };
+
+    locationService.partial(urlParams, true);
+
+    setTimeout(() => {
+      dashboardRef.current?.state.$timeRange?.onRefresh();
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('message', handleFilterDashboard, false);
+
+    return () => {
+      window.removeEventListener('message', handleFilterDashboard);
+    };
+  }, []);
 
   useEffect(() => {
     if (route.routeName === DashboardRoutes.Normal && type === 'snapshot') {

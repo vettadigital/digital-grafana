@@ -15,6 +15,24 @@ type Props = {
   onCancel: () => void;
 };
 
+export function getAssetIdFromIframe() {
+  const iframe = window.parent.document.querySelector('iframe');
+
+  if (!iframe) {
+    console.warn('No iframe found.');
+    return null;
+  }
+
+  const src = iframe.src;
+  if (!src) {
+    console.warn('The iframe has no src attribute.');
+    return null;
+  }
+
+  const params = new URLSearchParams(new URL(src).search);
+  return params.get('assetId');
+}
+
 export function ImportOverview({ dashboard, dashboardUid, inputs, meta, source, onCancel }: Props) {
   const searchObj = locationService.getSearchObject();
   const folderUid = searchObj.folderUid ? String(searchObj.folderUid) : '';

@@ -20,6 +20,14 @@ import { AddNewDataSourceButton } from './AddNewDataSourceButton';
 import { StaticList } from './StaticList';
 import { VirtualizedList } from './VirtualizedList';
 import { getDataSourceCompareFn } from './utils';
+import { loadUrlToken } from 'app/core/utils/urlToken';
+
+function decodeJWT(token: string) {
+  const [, payload] = token.split('.');
+  const decodedPayload = atob(payload);
+
+  return JSON.parse(decodedPayload);
+}
 
 // Only virtualize when the list is large enough to benefit from it.
 // Small lists render all items directly, which avoids issues with scroll
@@ -120,7 +128,17 @@ function useSortedDataSources(
     props.dataSources
   );
 
-  const filteredDataSources = props.filter ? dataSources.filter(props.filter) : dataSources;
+  let filteredDataSources = props.filter ? dataSources.filter(props.filter) : dataSources;
+
+  const token = loadUrlToken();
+  if (token) {
+    const payload = decodeJWT(token);
+    const hasPermission = payload?.permissions?.includes('grafana_postgresql_datasource:WRITE') || payload?.is_admin;
+
+    if (!hasPermission) {
+      filteredDataSources = filteredDataSources.filter((ds: any) => ds.type !== 'grafana-postgresql-datasource');
+    }
+  }
 
   return useMemo(
     () =>

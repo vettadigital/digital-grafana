@@ -21,6 +21,34 @@ import { type DashboardScene } from '../scene/DashboardScene';
 import { DashboardInteractions } from '../utils/interactions';
 import { trackDashboardSceneCreatedOrSaved } from '../utils/tracking';
 
+function applyChrononVariablesToTargets(saveModel: any) {
+  if (!Array.isArray(saveModel?.panels) || !Array.isArray(saveModel?.templating?.list)) {
+    return saveModel;
+  }
+
+  const variableNames = saveModel.templating.list.map((variable: any) => variable.name);
+  const variablesAsProps = Object.fromEntries(
+    variableNames.map((variableName: any) => [variableName, `$${variableName}`])
+  );
+
+  const updatedPanels = saveModel.panels.map((panel: any) => {
+    if (panel?.datasource?.type === 'chronon-datasource' && Array.isArray(panel.targets)) {
+      const updatedTargets = panel.targets.map((target: any) => ({ ...target, ...variablesAsProps }));
+      return { ...panel, targets: updatedTargets };
+    }
+
+    return panel;
+  });
+
+  return { ...saveModel, panels: updatedPanels };
+}
+
+function validateDescription(saveModel: any) {
+  if (saveModel.description === '') {
+    delete saveModel.description;
+  }
+}
+
 export function useSaveDashboard(isCopy = false) {
   const dispatch = useDispatch();
   const notifyApp = useAppNotification();
@@ -38,6 +66,8 @@ export function useSaveDashboard(isCopy = false) {
       {
         let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();
 
+        saveModel = applyChrononVariablesToTargets(saveModel);
+
         if (options.saveAsCopy) {
           saveModel = scene.getSaveAsModel({
             isNew: options.isNew,
@@ -46,6 +76,8 @@ export function useSaveDashboard(isCopy = false) {
             copyTags: options.copyTags,
           });
         }
+
+        validateDescription(saveModel);
 
         const result = await saveDashboardRtkQuery({
           dashboard: saveModel,
@@ -109,6 +141,20 @@ export function useSaveDashboard(isCopy = false) {
             })
           );
         }
+
+        const params = new URLSearchParams(window.location.search);
+        const assetId = params.get('assetId');
+
+        window.parent.postMessage(
+          {
+            source: 'grafana-dashboard-integration-event',
+            payload: {
+              uid: resultData.uid,
+              assetId,
+            },
+          },
+          '*'
+        );
 
         return result.data;
       }
