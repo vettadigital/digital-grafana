@@ -17,6 +17,7 @@ FROM alpine:3.23.3 AS alpine-base
 FROM ubuntu:24.04 AS ubuntu-base
 FROM golang:1.25.9-alpine AS go-builder-base
 FROM --platform=${JS_PLATFORM} node:24-alpine AS js-builder-base
+
 # Javascript build stage
 FROM --platform=${JS_PLATFORM} ${JS_IMAGE} AS js-builder
 ARG JS_NODE_ENV=production
@@ -27,7 +28,8 @@ ENV NODE_OPTIONS=--max_old_space_size=8000
 
 WORKDIR /tmp/grafana
 
-RUN apk add --no-cache make build-base python3
+# Adicionadas ferramentas extras para node-gyp (necessárias para compilar o msw/cypress em Alpine)
+RUN apk add --no-cache make build-base python3 autoconf automake libtool
 
 COPY package.json project.json nx.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
@@ -38,18 +40,17 @@ COPY LICENSE ./
 COPY conf/defaults.ini ./conf/defaults.ini
 COPY e2e e2e
 
-#
 # Set the node env according to defaults or argument passed
-#
 ENV NODE_ENV=${JS_NODE_ENV}
-# Disable cypress
+# Disable cypress globally
 ENV CYPRESS_INSTALL_BINARY=0
-#
+
+# Forçando a variável CYPRESS inline para o Yarn obedecer estritamente aos post-scripts
 RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
-    yarn install; \
-  else \
-    yarn install --immutable; \
-  fi
+        CYPRESS_INSTALL_BINARY=0 yarn install; \
+    else \
+        CYPRESS_INSTALL_BINARY=0 yarn install --immutable; \
+    fi
 
 COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
 COPY scripts scripts
@@ -67,11 +68,10 @@ ARG GO_BUILD_TAGS="oss"
 ARG WIRE_TAGS="oss"
 
 RUN if grep -i -q alpine /etc/issue; then \
-  apk add --no-cache \
-  bash \
-  # Install build dependencies
-  make git; \
-  fi
+    apk add --no-cache \
+    bash \
+    make git; \
+    fi
 
 WORKDIR /tmp/grafana
 
@@ -139,56 +139,56 @@ ARG GF_UID="472"
 ARG GF_GID="0"
 
 ENV PATH="/usr/share/grafana/bin:$PATH" \
-  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
-  GF_PATHS_DATA="/var/lib/grafana" \
-  GF_PATHS_HOME="/usr/share/grafana" \
-  GF_PATHS_LOGS="/var/log/grafana" \
-  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
-  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+    GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+    GF_PATHS_DATA="/var/lib/grafana" \
+    GF_PATHS_HOME="/usr/share/grafana" \
+    GF_PATHS_LOGS="/var/log/grafana" \
+    GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+    GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
 RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils && \
-  apk info -vv | sort
+    apk info -vv | sort
 
 # glibc support for alpine x86_64 only
 # docker run --rm --env STDOUT=1 sgerrand/glibc-builder 2.40 /usr/glibc-compat > glibc-bin-2.40.tar.gz
 ARG GLIBC_VERSION=2.40
 
 RUN if [ "$(arch)" = "x86_64" ]; then \
-  wget -qO- "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
-  usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
-  usr/glibc-compat/lib/libc.so.6 \
-  usr/glibc-compat/lib/libdl.so.2 \
-  usr/glibc-compat/lib/libm.so.6 \
-  usr/glibc-compat/lib/libpthread.so.0 \
-  usr/glibc-compat/lib/librt.so.1 \
-  usr/glibc-compat/lib/libresolv.so.2 && \
-  mkdir /lib64 && \
-  ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
-  fi
+    wget -qO- "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
+    usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
+    usr/glibc-compat/lib/libc.so.6 \
+    usr/glibc-compat/lib/libdl.so.2 \
+    usr/glibc-compat/lib/libm.so.6 \
+    usr/glibc-compat/lib/libpthread.so.0 \
+    usr/glibc-compat/lib/librt.so.1 \
+    usr/glibc-compat/lib/libresolv.so.2 && \
+    mkdir /lib64 && \
+    ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
+    fi
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
 RUN if [ ! "$(getent group "$GF_GID")" ]; then \
-  addgroup -S -g $GF_GID grafana; \
-  fi && \
-  GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
-  mkdir -p "$GF_PATHS_HOME/.aws" && \
-  adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana && \
-  mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
-  "$GF_PATHS_PROVISIONING/dashboards" \
-  "$GF_PATHS_PROVISIONING/notifiers" \
-  "$GF_PATHS_PROVISIONING/plugins" \
-  "$GF_PATHS_PROVISIONING/access-control" \
-  "$GF_PATHS_PROVISIONING/alerting" \
-  "$GF_PATHS_LOGS" \
-  "$GF_PATHS_PLUGINS" \
-  "$GF_PATHS_DATA" && \
-  cp conf/sample.ini "$GF_PATHS_CONFIG" && \
-  cp conf/ldap.toml /etc/grafana/ldap.toml && \
-  chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" && \
-  chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING"
+    addgroup -S -g $GF_GID grafana; \
+    fi && \
+    GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
+    mkdir -p "$GF_PATHS_HOME/.aws" && \
+    adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana && \
+    mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
+    "$GF_PATHS_PROVISIONING/dashboards" \
+    "$GF_PATHS_PROVISIONING/notifiers" \
+    "$GF_PATHS_PROVISIONING/plugins" \
+    "$GF_PATHS_PROVISIONING/access-control" \
+    "$GF_PATHS_PROVISIONING/alerting" \
+    "$GF_PATHS_LOGS" \
+    "$GF_PATHS_PLUGINS" \
+    "$GF_PATHS_DATA" && \
+    cp conf/sample.ini "$GF_PATHS_CONFIG" && \
+    cp conf/ldap.toml /etc/grafana/ldap.toml && \
+    chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" && \
+    chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING"
 
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
@@ -217,41 +217,41 @@ ARG GF_UID="472"
 ARG GF_GID="0"
 
 ENV PATH="/usr/share/grafana/bin:$PATH" \
-  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
-  GF_PATHS_DATA="/var/lib/grafana" \
-  GF_PATHS_HOME="/usr/share/grafana" \
-  GF_PATHS_LOGS="/var/log/grafana" \
-  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
-  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+    GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+    GF_PATHS_DATA="/var/lib/grafana" \
+    GF_PATHS_HOME="/usr/share/grafana" \
+    GF_PATHS_LOGS="/var/log/grafana" \
+    GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+    GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-  apt-get install -y ca-certificates curl tzdata musl && \
-  apt-get autoremove -y && \
-  rm -rf /var/lib/apt/lists/*
+    apt-get install -y ca-certificates curl tzdata musl && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
 RUN if [ ! "$(getent group "$GF_GID")" ]; then \
-  groupadd --system --gid $GF_GID grafana; \
-  fi && \
-  GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
-  mkdir -p "$GF_PATHS_HOME/.aws" && \
-  useradd --system --uid $GF_UID --gid "$GF_GID_NAME" --create-home grafana && \
-  mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
-  "$GF_PATHS_PROVISIONING/dashboards" \
-  "$GF_PATHS_PROVISIONING/notifiers" \
-  "$GF_PATHS_PROVISIONING/plugins" \
-  "$GF_PATHS_PROVISIONING/access-control" \
-  "$GF_PATHS_PROVISIONING/alerting" \
-  "$GF_PATHS_LOGS" \
-  "$GF_PATHS_PLUGINS" \
-  "$GF_PATHS_DATA" && \
-  cp conf/sample.ini "$GF_PATHS_CONFIG" && \
-  cp conf/ldap.toml /etc/grafana/ldap.toml && \
-  chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" && \
-  chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING"
+    groupadd --system --gid $GF_GID grafana; \
+    fi && \
+    GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
+    mkdir -p "$GF_PATHS_HOME/.aws" && \
+    useradd --system --uid $GF_UID --gid "$GF_GID_NAME" --create-home grafana && \
+    mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
+    "$GF_PATHS_PROVISIONING/dashboards" \
+    "$GF_PATHS_PROVISIONING/notifiers" \
+    "$GF_PATHS_PROVISIONING/plugins" \
+    "$GF_PATHS_PROVISIONING/access-control" \
+    "$GF_PATHS_PROVISIONING/alerting" \
+    "$GF_PATHS_LOGS" \
+    "$GF_PATHS_PLUGINS" \
+    "$GF_PATHS_DATA" && \
+    cp conf/sample.ini "$GF_PATHS_CONFIG" && \
+    cp conf/ldap.toml /etc/grafana/ldap.toml && \
+    chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" && \
+    chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING"
 
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
