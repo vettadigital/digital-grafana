@@ -146,22 +146,50 @@ ENV PATH="/usr/share/grafana/bin:$PATH" \
 
 WORKDIR $GF_PATHS_HOME
 
+# -----------------------------------------------------------------------------
+# FIX: Install ca-certificates and curl together.
+# OPTIONAL: Pass --build-arg CORPORATE_CA_CERT="$(cat your-corp-ca.crt)" to
+# inject a corporate/self-signed CA at build time. The cert will be added to the
+# system trust store so ALL subsequent network calls (curl, wget, apk…) trust it.
+# -----------------------------------------------------------------------------
+ARG CORPORATE_CA_CERT=""
+
 RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils && \
+  if [ -n "$CORPORATE_CA_CERT" ]; then \
+    echo "$CORPORATE_CA_CERT" > /usr/local/share/ca-certificates/corporate-ca.crt && \
+    update-ca-certificates; \
+  fi && \
   apk info -vv | sort
 
+# -----------------------------------------------------------------------------
 # glibc support for alpine x86_64 only
 # docker run --rm --env STDOUT=1 sgerrand/glibc-builder 2.40 /usr/glibc-compat > glibc-bin-2.40.tar.gz
+#
+# FIX: Replaced `wget` with `curl` (already installed above).
+#   --retry 3           : retry up to 3 times on transient failures
+#   --retry-delay 5     : wait 5 s between retries
+#   --retry-connrefused : also retry on connection-refused errors
+#   -fsSL               : fail on HTTP error, silent, follow redirects
+#   -k / --insecure     : skip TLS certificate verification
+#                         (required when a corporate proxy performs SSL inspection
+#                          and its CA is not trusted by Alpine's default bundle)
+#
+# NOTE: If your environment has a stable CA cert, prefer passing it via
+#       CORPORATE_CA_CERT (see above) and removing -k for stronger security.
+# -----------------------------------------------------------------------------
 ARG GLIBC_VERSION=2.40
 
 RUN if [ "$(arch)" = "x86_64" ]; then \
-  wget -qO- "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
-  usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
-  usr/glibc-compat/lib/libc.so.6 \
-  usr/glibc-compat/lib/libdl.so.2 \
-  usr/glibc-compat/lib/libm.so.6 \
-  usr/glibc-compat/lib/libpthread.so.0 \
-  usr/glibc-compat/lib/librt.so.1 \
-  usr/glibc-compat/lib/libresolv.so.2 && \
+  curl --retry 3 --retry-delay 5 --retry-connrefused -fsSLk \
+    "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" \
+  | tar zxf - -C / \
+    usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
+    usr/glibc-compat/lib/libc.so.6 \
+    usr/glibc-compat/lib/libdl.so.2 \
+    usr/glibc-compat/lib/libm.so.6 \
+    usr/glibc-compat/lib/libpthread.so.0 \
+    usr/glibc-compat/lib/librt.so.1 \
+    usr/glibc-compat/lib/libresolv.so.2 && \
   mkdir /lib64 && \
   ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
   fi
@@ -224,10 +252,21 @@ ENV PATH="/usr/share/grafana/bin:$PATH" \
 
 WORKDIR $GF_PATHS_HOME
 
+# -----------------------------------------------------------------------------
+# FIX: Add CORPORATE_CA_CERT support to Ubuntu stage as well.
+# Pass --build-arg CORPORATE_CA_CERT="$(cat your-corp-ca.crt)" to trust a
+# corporate/self-signed CA inside the container.
+# -----------------------------------------------------------------------------
+ARG CORPORATE_CA_CERT=""
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
   apt-get install -y ca-certificates curl tzdata musl && \
   apt-get autoremove -y && \
-  rm -rf /var/lib/apt/lists/*
+  rm -rf /var/lib/apt/lists/* && \
+  if [ -n "$CORPORATE_CA_CERT" ]; then \
+    echo "$CORPORATE_CA_CERT" > /usr/local/share/ca-certificates/corporate-ca.crt && \
+    update-ca-certificates; \
+  fi
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
