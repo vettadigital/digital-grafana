@@ -42,6 +42,8 @@ COPY e2e e2e
 # Set the node env according to defaults or argument passed
 #
 ENV NODE_ENV=${JS_NODE_ENV}
+# Disable cypress
+ENV CYPRESS_INSTALL_BINARY=0
 #
 RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
     yarn install; \
