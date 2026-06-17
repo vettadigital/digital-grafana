@@ -29,7 +29,7 @@ ENV NODE_OPTIONS=--max_old_space_size=8000
 
 WORKDIR /tmp/grafana
 
-# ALTERAÇÃO DA OPÇÃO 3: Adicionado 'apk update' para forçar a atualização dos índices e rejeitar pacotes corrompidos na cache do agente
+# CORREÇÃO 1: 'apk update' inserido para evitar a leitura de pacotes corrompidos na cache
 RUN apk update && apk add --no-cache make build-base python3
 
 COPY package.json project.json nx.json yarn.lock .yarnrc.yml ./
@@ -43,7 +43,11 @@ COPY conf/defaults.ini ./conf/defaults.ini
 # Set the node env according to defaults or argument passed
 ENV NODE_ENV=${JS_NODE_ENV}
 
-RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then     yarn install;   else     yarn install --immutable;   fi
+RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
+    yarn install; \
+  else \
+    yarn install --immutable; \
+  fi
 
 COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
 COPY scripts scripts
@@ -60,8 +64,13 @@ ARG BUILD_BRANCH=""
 ARG GO_BUILD_TAGS="oss"
 ARG WIRE_TAGS="oss"
 
-RUN if grep -i -q alpine /etc/issue; then   apk add --no-cache   bash   # Install build dependencies
-  make git;   fi
+# CORREÇÃO 2: O comentário foi movido para fora da instrução multilinha.
+# Install build dependencies
+RUN if grep -i -q alpine /etc/issue; then \
+  apk add --no-cache \
+  bash \
+  make git; \
+  fi
 
 WORKDIR /tmp/grafana
 
@@ -73,7 +82,8 @@ COPY .citools .citools
 # Uses --parents to preserve directory structure with fewer COPY directives.
 COPY --parents **/go.mod **/go.sum ./
 
-RUN --mount=type=cache,target=/go/pkg/mod     go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy full source
 COPY embed.go Makefile package.json ./
@@ -93,7 +103,9 @@ COPY .github .github
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV BUILD_BRANCH=${BUILD_BRANCH}
 
-RUN --mount=type=cache,target=/go/pkg/mod     --mount=type=cache,target=/root/.cache/go-build     make build-go GO_BUILD_TAGS=${GO_BUILD_TAGS} WIRE_TAGS=${WIRE_TAGS}
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    make build-go GO_BUILD_TAGS=${GO_BUILD_TAGS} WIRE_TAGS=${WIRE_TAGS}
 
 RUN mkdir -p data/plugins-bundled
 
@@ -135,10 +147,13 @@ FROM alpine-base AS grafana-plugins
 ENV GF_PATHS_HOME="/usr/share/grafana"
 WORKDIR $GF_PATHS_HOME
 
-RUN mkdir -p data/plugins-bundled &&   chown 472:0 data/plugins-bundled &&   chmod 777 data/plugins-bundled
+RUN mkdir -p data/plugins-bundled && \
+  chown 472:0 data/plugins-bundled && \
+  chmod 777 data/plugins-bundled
 
 ARG SLIM=false
-RUN --mount=type=bind,from=go-src,source=/tmp/grafana/data/plugins-bundled,target=/mnt/plugins-bundled   [ "$SLIM" = "true" ] || cp -a /mnt/plugins-bundled/. ./data/plugins-bundled/
+RUN --mount=type=bind,from=go-src,source=/tmp/grafana/data/plugins-bundled,target=/mnt/plugins-bundled \
+  [ "$SLIM" = "true" ] || cp -a /mnt/plugins-bundled/. ./data/plugins-bundled/
 
 # Intermediate filesystem setup for the distroless target.
 # Uses an Alpine shell to create directories, users, and config files since distroless has no shell.
@@ -148,20 +163,45 @@ FROM alpine-base AS distroless-prep
 ARG GF_UID="472"
 ARG GF_GID="0"
 
-ENV PATH="/usr/share/grafana/bin:$PATH"   GF_PATHS_CONFIG="/etc/grafana/grafana.ini"   GF_PATHS_DATA="/var/lib/grafana"   GF_PATHS_HOME="/usr/share/grafana"   GF_PATHS_LOGS="/var/log/grafana"   GF_PATHS_PLUGINS="/var/lib/grafana/plugins"   GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+ENV PATH="/usr/share/grafana/bin:$PATH" \
+  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+  GF_PATHS_DATA="/var/lib/grafana" \
+  GF_PATHS_HOME="/usr/share/grafana" \
+  GF_PATHS_LOGS="/var/log/grafana" \
+  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 
-RUN if [ ! "$(getent group "$GF_GID")" ]; then   addgroup -S -g $GF_GID grafana;   fi &&   GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) &&   mkdir -p "$GF_PATHS_HOME/.aws"   "$GF_PATHS_PROVISIONING/datasources"   "$GF_PATHS_PROVISIONING/dashboards"   "$GF_PATHS_PROVISIONING/notifiers"   "$GF_PATHS_PROVISIONING/plugins"   "$GF_PATHS_PROVISIONING/access-control"   "$GF_PATHS_PROVISIONING/alerting"   "$GF_PATHS_LOGS"   "$GF_PATHS_PLUGINS"   "$GF_PATHS_HOME/data/plugins-bundled"   "$GF_PATHS_DATA"   /etc/grafana &&   adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana &&   cp conf/sample.ini "$GF_PATHS_CONFIG" &&   cp conf/ldap.toml /etc/grafana/ldap.toml &&   chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" &&   chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" &&   printf 'root:x:0:0:root:/root:/sbin/nologin
-nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin
-grafana:x:%s:%s::/usr/share/grafana:/sbin/nologin
-' "$GF_UID" "$GF_GID" > /tmp/distroless-passwd &&   printf 'root:x:0:
-nobody:x:65534:
-' > /tmp/distroless-group &&   if [ "$GF_GID" != "0" ]; then printf 'grafana:x:%s:
-' "$GF_GID" >> /tmp/distroless-group; fi &&   grafana server --homepath="$GF_PATHS_HOME" -v | sed -e 's/Version //' > /.grafana-version &&   chmod 644 /.grafana-version
+RUN if [ ! "$(getent group "$GF_GID")" ]; then \
+  addgroup -S -g $GF_GID grafana; \
+  fi && \
+  GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
+  mkdir -p "$GF_PATHS_HOME/.aws" \
+  "$GF_PATHS_PROVISIONING/datasources" \
+  "$GF_PATHS_PROVISIONING/dashboards" \
+  "$GF_PATHS_PROVISIONING/notifiers" \
+  "$GF_PATHS_PROVISIONING/plugins" \
+  "$GF_PATHS_PROVISIONING/access-control" \
+  "$GF_PATHS_PROVISIONING/alerting" \
+  "$GF_PATHS_LOGS" \
+  "$GF_PATHS_PLUGINS" \
+  "$GF_PATHS_HOME/data/plugins-bundled" \
+  "$GF_PATHS_DATA" \
+  /etc/grafana && \
+  adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana && \
+  cp conf/sample.ini "$GF_PATHS_CONFIG" && \
+  cp conf/ldap.toml /etc/grafana/ldap.toml && \
+  chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" && \
+  chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" && \
+  printf 'root:x:0:0:root:/root:/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin\ngrafana:x:%s:%s::/usr/share/grafana:/sbin/nologin\n' "$GF_UID" "$GF_GID" > /tmp/distroless-passwd && \
+  printf 'root:x:0:\nnobody:x:65534:\n' > /tmp/distroless-group && \
+  if [ "$GF_GID" != "0" ]; then printf 'grafana:x:%s:\n' "$GF_GID" >> /tmp/distroless-group; fi && \
+  grafana server --homepath="$GF_PATHS_HOME" -v | sed -e 's/Version //' > /.grafana-version && \
+  chmod 644 /.grafana-version
 
 # Alpine final stage
 FROM alpine-base AS final-alpine
@@ -172,21 +212,58 @@ LABEL org.opencontainers.image.source="https://github.com/grafana/grafana"
 ARG GF_UID="472"
 ARG GF_GID="0"
 
-ENV PATH="/usr/share/grafana/bin:$PATH"   GF_PATHS_CONFIG="/etc/grafana/grafana.ini"   GF_PATHS_DATA="/var/lib/grafana"   GF_PATHS_HOME="/usr/share/grafana"   GF_PATHS_LOGS="/var/log/grafana"   GF_PATHS_PLUGINS="/var/lib/grafana/plugins"   GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+ENV PATH="/usr/share/grafana/bin:$PATH" \
+  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+  GF_PATHS_DATA="/var/lib/grafana" \
+  GF_PATHS_HOME="/usr/share/grafana" \
+  GF_PATHS_LOGS="/var/log/grafana" \
+  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
-RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils &&   apk info -vv | sort
+RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils && \
+  apk info -vv | sort
 
 # glibc support for alpine x86_64 only
 ARG GLIBC_VERSION=2.40
 
-# Mantida a resiliência da primeira correção para evitar falhas de rede no curl
-RUN if [ "$(arch)" = "x86_64" ]; then   curl -fsSL --retry 3 --retry-delay 2 "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C /   usr/glibc-compat/lib/ld-linux-x86-64.so.2   usr/glibc-compat/lib/libc.so.6   usr/glibc-compat/lib/libdl.so.2   usr/glibc-compat/lib/libm.so.6   usr/glibc-compat/lib/libpthread.so.0   usr/glibc-compat/lib/librt.so.1   usr/glibc-compat/lib/libresolv.so.2 &&   mkdir /lib64 &&   ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64;   fi
+# CORREÇÃO 3: Adicionados '--retry 3 --retry-delay 2' para mitigar instabilidades de rede e SSL no runner
+RUN if [ "$(arch)" = "x86_64" ]; then \
+  curl -fsSL --retry 3 --retry-delay 2 "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
+  usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
+  usr/glibc-compat/lib/libc.so.6 \
+  usr/glibc-compat/lib/libdl.so.2 \
+  usr/glibc-compat/lib/libm.so.6 \
+  usr/glibc-compat/lib/libpthread.so.0 \
+  usr/glibc-compat/lib/librt.so.1 \
+  usr/glibc-compat/lib/libresolv.so.2 && \
+  mkdir /lib64 && \
+  ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
+  fi
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
-RUN if [ ! "$(getent group "$GF_GID")" ]; then   addgroup -S -g $GF_GID grafana;   fi &&   GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) &&   mkdir -p "$GF_PATHS_HOME/.aws" &&   adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana &&   mkdir -p "$GF_PATHS_PROVISIONING/datasources"   "$GF_PATHS_PROVISIONING/dashboards"   "$GF_PATHS_PROVISIONING/notifiers"   "$GF_PATHS_PROVISIONING/plugins"   "$GF_PATHS_PROVISIONING/access-control"   "$GF_PATHS_PROVISIONING/alerting"   "$GF_PATHS_LOGS"   "$GF_PATHS_PLUGINS"   "$GF_PATHS_HOME/data/plugins-bundled"   "$GF_PATHS_DATA" &&   cp conf/sample.ini "$GF_PATHS_CONFIG" &&   cp conf/ldap.toml /etc/grafana/ldap.toml &&   chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" &&   chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled"
+RUN if [ ! "$(getent group "$GF_GID")" ]; then \
+  addgroup -S -g $GF_GID grafana; \
+  fi && \
+  GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
+  mkdir -p "$GF_PATHS_HOME/.aws" && \
+  adduser -S -u $GF_UID -G "$GF_GID_NAME" grafana && \
+  mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
+  "$GF_PATHS_PROVISIONING/dashboards" \
+  "$GF_PATHS_PROVISIONING/notifiers" \
+  "$GF_PATHS_PROVISIONING/plugins" \
+  "$GF_PATHS_PROVISIONING/access-control" \
+  "$GF_PATHS_PROVISIONING/alerting" \
+  "$GF_PATHS_LOGS" \
+  "$GF_PATHS_PLUGINS" \
+  "$GF_PATHS_HOME/data/plugins-bundled" \
+  "$GF_PATHS_DATA" && \
+  cp conf/sample.ini "$GF_PATHS_CONFIG" && \
+  cp conf/ldap.toml /etc/grafana/ldap.toml && \
+  chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" && \
+  chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled"
 
 COPY --link --from=grafana-assets /usr/share/grafana /usr/share/grafana
 COPY --link --from=grafana-plugins /usr/share/grafana/data/plugins-bundled /usr/share/grafana/data/plugins-bundled
@@ -211,15 +288,43 @@ LABEL org.opencontainers.image.source="https://github.com/grafana/grafana"
 ARG GF_UID="472"
 ARG GF_GID="0"
 
-ENV PATH="/usr/share/grafana/bin:$PATH"   GF_PATHS_CONFIG="/etc/grafana/grafana.ini"   GF_PATHS_DATA="/var/lib/grafana"   GF_PATHS_HOME="/usr/share/grafana"   GF_PATHS_LOGS="/var/log/grafana"   GF_PATHS_PLUGINS="/var/lib/grafana/plugins"   GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+ENV PATH="/usr/share/grafana/bin:$PATH" \
+  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+  GF_PATHS_DATA="/var/lib/grafana" \
+  GF_PATHS_HOME="/usr/share/grafana" \
+  GF_PATHS_LOGS="/var/log/grafana" \
+  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update &&   apt-get install -y ca-certificates curl tzdata musl &&   apt-get autoremove -y &&   rm -rf /var/lib/apt/lists/*
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+  apt-get install -y ca-certificates curl tzdata musl && \
+  apt-get autoremove -y && \
+  rm -rf /var/lib/apt/lists/*
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
-RUN if [ ! "$(getent group "$GF_GID")" ]; then   groupadd --system --gid $GF_GID grafana;   fi &&   GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) &&   mkdir -p "$GF_PATHS_HOME/.aws" &&   useradd --system --uid $GF_UID --gid "$GF_GID_NAME" --create-home grafana &&   mkdir -p "$GF_PATHS_PROVISIONING/datasources"   "$GF_PATHS_PROVISIONING/dashboards"   "$GF_PATHS_PROVISIONING/notifiers"   "$GF_PATHS_PROVISIONING/plugins"   "$GF_PATHS_PROVISIONING/access-control"   "$GF_PATHS_PROVISIONING/alerting"   "$GF_PATHS_LOGS"   "$GF_PATHS_PLUGINS"   "$GF_PATHS_HOME/data/plugins-bundled"   "$GF_PATHS_DATA" &&   cp conf/sample.ini "$GF_PATHS_CONFIG" &&   cp conf/ldap.toml /etc/grafana/ldap.toml &&   chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" &&   chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled"
+RUN if [ ! "$(getent group "$GF_GID")" ]; then \
+  groupadd --system --gid $GF_GID grafana; \
+  fi && \
+  GF_GID_NAME=$(getent group $GF_GID | cut -d':' -f1) && \
+  mkdir -p "$GF_PATHS_HOME/.aws" && \
+  useradd --system --uid $GF_UID --gid "$GF_GID_NAME" --create-home grafana && \
+  mkdir -p "$GF_PATHS_PROVISIONING/datasources" \
+  "$GF_PATHS_PROVISIONING/dashboards" \
+  "$GF_PATHS_PROVISIONING/notifiers" \
+  "$GF_PATHS_PROVISIONING/plugins" \
+  "$GF_PATHS_PROVISIONING/access-control" \
+  "$GF_PATHS_PROVISIONING/alerting" \
+  "$GF_PATHS_LOGS" \
+  "$GF_PATHS_PLUGINS" \
+  "$GF_PATHS_HOME/data/plugins-bundled" \
+  "$GF_PATHS_DATA" && \
+  cp conf/sample.ini "$GF_PATHS_CONFIG" && \
+  cp conf/ldap.toml /etc/grafana/ldap.toml && \
+  chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled" && \
+  chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" "$GF_PATHS_HOME/data/plugins-bundled"
 
 COPY --link --from=grafana-assets /usr/share/grafana /usr/share/grafana
 COPY --link --from=grafana-plugins /usr/share/grafana/data/plugins-bundled /usr/share/grafana/data/plugins-bundled
@@ -244,7 +349,13 @@ LABEL org.opencontainers.image.source="https://github.com/grafana/grafana"
 ARG GF_UID="472"
 ARG GF_GID="0"
 
-ENV PATH="/usr/share/grafana/bin:$PATH"   GF_PATHS_CONFIG="/etc/grafana/grafana.ini"   GF_PATHS_DATA="/var/lib/grafana"   GF_PATHS_HOME="/usr/share/grafana"   GF_PATHS_LOGS="/var/log/grafana"   GF_PATHS_PLUGINS="/var/lib/grafana/plugins"   GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
+ENV PATH="/usr/share/grafana/bin:$PATH" \
+  GF_PATHS_CONFIG="/etc/grafana/grafana.ini" \
+  GF_PATHS_DATA="/var/lib/grafana" \
+  GF_PATHS_HOME="/usr/share/grafana" \
+  GF_PATHS_LOGS="/var/log/grafana" \
+  GF_PATHS_PLUGINS="/var/lib/grafana/plugins" \
+  GF_PATHS_PROVISIONING="/etc/grafana/provisioning"
 
 WORKDIR $GF_PATHS_HOME
 
