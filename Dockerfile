@@ -18,6 +18,7 @@ FROM ubuntu:24.04 AS ubuntu-base
 FROM golang:1.26.3-alpine AS go-builder-base
 FROM --platform=${JS_PLATFORM} node:24-alpine AS js-builder-base
 FROM gcr.io/distroless/static-debian13 AS distroless-base
+
 # Javascript build stage
 FROM --platform=${JS_PLATFORM} ${JS_IMAGE} AS js-builder
 ARG JS_NODE_ENV=production
@@ -38,11 +39,9 @@ COPY public public
 COPY LICENSE ./
 COPY conf/defaults.ini ./conf/defaults.ini
 
-#
 # Set the node env according to defaults or argument passed
-#
 ENV NODE_ENV=${JS_NODE_ENV}
-#
+
 RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
     yarn install; \
   else \
@@ -139,8 +138,8 @@ COPY --from=js-src /tmp/grafana/public ./public
 COPY --from=js-src /tmp/grafana/LICENSE ./
 
 # Bundled plugins — shared by the 3 full (non-slim) variants, and by the 3 slim variants
-# among themselves (as an empty directory). Kept separate from grafana-assets so the two
-# groups each get their own shared layer rather than a single mixed one.
+# among themselves (as an empty directory).
+# Kept separate from grafana-assets so the two groups each get their own shared layer.
 FROM alpine-base AS grafana-plugins
 
 ENV GF_PATHS_HOME="/usr/share/grafana"
@@ -155,8 +154,8 @@ RUN --mount=type=bind,from=go-src,source=/tmp/grafana/data/plugins-bundled,targe
   [ "$SLIM" = "true" ] || cp -a /mnt/plugins-bundled/. ./data/plugins-bundled/
 
 # Intermediate filesystem setup for the distroless target.
-# Uses an Alpine shell to create directories, users, and config files
-# since distroless has no shell. No network access required.
+# Uses an Alpine shell to create directories, users, and config files since distroless has no shell.
+# No network access required.
 FROM alpine-base AS distroless-prep
 
 ARG GF_UID="472"
@@ -225,11 +224,11 @@ RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils &&
   apk info -vv | sort
 
 # glibc support for alpine x86_64 only
-# docker run --rm --env STDOUT=1 sgerrand/glibc-builder 2.40 /usr/glibc-compat > glibc-bin-2.40.tar.gz
 ARG GLIBC_VERSION=2.40
 
+# ADICIONADO RESILIÊNCIA: --retry 3 e --retry-delay 2 mitigam falhas temporárias de TLS/Rede no download
 RUN if [ "$(arch)" = "x86_64" ]; then \
-  curl -fsSL "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
+  curl -fsSL --retry 3 --retry-delay 2 "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
   usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
   usr/glibc-compat/lib/libc.so.6 \
   usr/glibc-compat/lib/libdl.so.2 \
@@ -273,13 +272,12 @@ RUN chmod 644 /.grafana-version
 EXPOSE 3000
 
 ARG RUN_SH=./packaging/docker/run.sh
-
 COPY ${RUN_SH} /run.sh
 
 USER "$GF_UID"
 ENTRYPOINT [ "/run.sh" ]
 
-# Ubuntu final stage — use --target=final-ubuntu to select this variant
+# Ubuntu final stage
 FROM ubuntu-base AS final-ubuntu
 
 LABEL maintainer="Grafana Labs <hello@grafana.com>"
@@ -335,24 +333,12 @@ RUN chmod 644 /.grafana-version
 EXPOSE 3000
 
 ARG RUN_SH=./packaging/docker/run.sh
-
 COPY ${RUN_SH} /run.sh
 
 USER "$GF_UID"
 ENTRYPOINT [ "/run.sh" ]
 
-# Distroless final stage — use --target=final-distroless to select this variant.
-# No shell, no package manager, no OS utilities: significantly reduces CVE surface.
-# Requires a static binary (CGO_ENABLED=0). The run.sh entrypoint is replaced by a
-# direct grafana server invocation, so these run.sh features are unavailable:
-#   - GF_*__FILE secret expansion (reading config values from mounted secret files)
-#   - AWS credential file generation from GF_AWS_* env vars
-#   - GF_INSTALL_PLUGINS (deprecated; use GF_PLUGINS_PREINSTALL instead)
-# GF_PATHS_* env vars work normally — they are not overridden by cfg: flags in this entrypoint.
-#
-# Filesystem layout (dirs, users, config) is prepared by distroless-prep and
-# binaries/assets are copied directly from go-src/js-src. No Alpine OS packages,
-# libraries, or network downloads are included.
+# Distroless final stage
 FROM distroless-base AS final-distroless
 
 LABEL maintainer="Grafana Labs <hello@grafana.com>"
@@ -389,6 +375,6 @@ USER $GF_UID
 
 ENTRYPOINT ["/usr/share/grafana/bin/grafana", "server", "--homepath=/usr/share/grafana", "--config=/etc/grafana/grafana.ini", "--packaging=docker", "cfg:default.log.mode=console"]
 
-# Default stage — alpine. Builds without --target produce an alpine image.
-# Use --target=final-ubuntu to build the ubuntu variant instead.
+# Default stage — alpine.
+# Builds without --target produce an alpine image.
 FROM final-alpine
