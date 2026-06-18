@@ -156,14 +156,17 @@ RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils &&
 ARG GLIBC_VERSION=2.40
 
 RUN if [ "$(arch)" = "x86_64" ]; then \
-  curl -fsSL --retry 5 --retry-delay 3 "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" | tar zxf - -C / \
-  usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
-  usr/glibc-compat/lib/libc.so.6 \
-  usr/glibc-compat/lib/libdl.so.2 \
-  usr/glibc-compat/lib/libm.so.6 \
-  usr/glibc-compat/lib/libpthread.so.0 \
-  usr/glibc-compat/lib/librt.so.1 \
-  usr/glibc-compat/lib/libresolv.so.2 && \
+  curl -fsSL --retry 5 --retry-delay 3 \
+    -o /tmp/glibc.tar.gz "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" && \
+  tar zxf /tmp/glibc.tar.gz -C / \
+    usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
+    usr/glibc-compat/lib/libc.so.6 \
+    usr/glibc-compat/lib/libdl.so.2 \
+    usr/glibc-compat/lib/libm.so.6 \
+    usr/glibc-compat/lib/libpthread.so.0 \
+    usr/glibc-compat/lib/librt.so.1 \
+    usr/glibc-compat/lib/libresolv.so.2 && \
+  rm /tmp/glibc.tar.gz && \
   mkdir /lib64 && \
   ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
   fi
