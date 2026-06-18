@@ -47,9 +47,9 @@ ENV CYPRESS_INSTALL_BINARY=0
 
 # Forçando a variável CYPRESS inline para o Yarn obedecer estritamente aos post-scripts
 RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
-        CYPRESS_INSTALL_BINARY=0 yarn install; \
+        CYPRESS_INSTALL_BINARY=0 YARN_CHECKSUM_BEHAVIOR=update yarn install; \
     else \
-        CYPRESS_INSTALL_BINARY=0 yarn install --immutable; \
+        CYPRESS_INSTALL_BINARY=0 YARN_CHECKSUM_BEHAVIOR=update yarn install $JS_YARN_INSTALL_FLAG; \
     fi
 
 COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
