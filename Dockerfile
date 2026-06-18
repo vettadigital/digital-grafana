@@ -29,7 +29,7 @@ ENV NODE_OPTIONS=--max_old_space_size=8000
 WORKDIR /tmp/grafana
 
 # Adicionadas ferramentas extras para node-gyp (necessárias para compilar o msw/cypress em Alpine)
-RUN apk add --no-cache make build-base python3 autoconf automake libtool
+RUN apk add --no-cache make build-base python3 autoconf automake libtool git
 
 COPY package.json project.json nx.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
