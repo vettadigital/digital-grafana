@@ -44,9 +44,9 @@ COPY e2e e2e
 ENV NODE_ENV=${JS_NODE_ENV}
 #
 RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
-    yarn install; \
+    CYPRESS_INSTALL_BINARY=0 yarn install; \
   else \
-    yarn install --immutable; \
+    CYPRESS_INSTALL_BINARY=0 yarn install --immutable; \
   fi
 
 COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
