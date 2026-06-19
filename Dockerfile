@@ -27,9 +27,12 @@ ENV NODE_OPTIONS=--max_old_space_size=8000
 # FIXED: Limit Nx parallel workers to prevent memory exhaustion / SIGINT 130 status
 ENV NX_PARALLEL=2
 
+ENV NM_NETWORK_CONCURRENCY=1
+ENV YARN_NETWORK_CONCURRENCY=1
+
 WORKDIR /tmp/grafana
 
-RUN apk add --no-cache make build-base python3
+RUN apk add --no-cache make build-base python3 git
 
 COPY package.json project.json nx.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
