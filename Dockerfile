@@ -154,7 +154,7 @@ RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils &&
 ARG GLIBC_VERSION=2.40
 
 RUN if [ "$(arch)" = "x86_64" ]; then \
-  curl -fsSL --retry 5 --retry-delay 3 \
+  curl --http1.1 -fsSL --retry 5 --retry-delay 3 \
     -o /tmp/glibc.tar.gz "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" && \
   tar zxf /tmp/glibc.tar.gz -C / \
     usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
