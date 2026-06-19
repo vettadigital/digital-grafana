@@ -146,28 +146,28 @@ ENV PATH="/usr/share/grafana/bin:$PATH" \
 
 WORKDIR $GF_PATHS_HOME
 
-RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils && \
+RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils libc6-compat && \
   apk info -vv | sort
 
 # glibc support for alpine x86_64 only
 # docker run --rm --env STDOUT=1 sgerrand/glibc-builder 2.40 /usr/glibc-compat > glibc-bin-2.40.tar.gz
 ARG GLIBC_VERSION=2.40
 
-RUN if [ "$(arch)" = "x86_64" ]; then \
-  curl --http1.1 -fsSL --retry 5 --retry-delay 3 \
-    -o /tmp/glibc.tar.gz "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" && \
-  tar zxf /tmp/glibc.tar.gz -C / \
-    usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
-    usr/glibc-compat/lib/libc.so.6 \
-    usr/glibc-compat/lib/libdl.so.2 \
-    usr/glibc-compat/lib/libm.so.6 \
-    usr/glibc-compat/lib/libpthread.so.0 \
-    usr/glibc-compat/lib/librt.so.1 \
-    usr/glibc-compat/lib/libresolv.so.2 && \
-  rm /tmp/glibc.tar.gz && \
-  mkdir /lib64 && \
-  ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
-  fi
+# RUN if [ "$(arch)" = "x86_64" ]; then \
+#   curl --http1.1 -fsSL --retry 5 --retry-delay 3 \
+#     -o /tmp/glibc.tar.gz "https://dl.grafana.com/glibc/glibc-bin-$GLIBC_VERSION.tar.gz" && \
+#   tar zxf /tmp/glibc.tar.gz -C / \
+#     usr/glibc-compat/lib/ld-linux-x86-64.so.2 \
+#     usr/glibc-compat/lib/libc.so.6 \
+#     usr/glibc-compat/lib/libdl.so.2 \
+#     usr/glibc-compat/lib/libm.so.6 \
+#     usr/glibc-compat/lib/libpthread.so.0 \
+#     usr/glibc-compat/lib/librt.so.1 \
+#     usr/glibc-compat/lib/libresolv.so.2 && \
+#   rm /tmp/glibc.tar.gz && \
+#   mkdir /lib64 && \
+#   ln -s /usr/glibc-compat/lib/ld-linux-x86-64.so.2 /lib64; \
+#   fi
 
 COPY --from=go-src /tmp/grafana/conf ./conf
 
