@@ -146,7 +146,7 @@ ENV PATH="/usr/share/grafana/bin:$PATH" \
 
 WORKDIR $GF_PATHS_HOME
 
-RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils libc6-compa git && \
+RUN apk add --no-cache ca-certificates bash bubblewrap curl tzdata musl-utils libc6-compat git && \
   apk info -vv | sort
 
 # glibc support for alpine x86_64 only
