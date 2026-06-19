@@ -24,6 +24,8 @@ ARG JS_YARN_INSTALL_FLAG=--immutable
 ARG JS_YARN_BUILD_FLAG=build
 
 ENV NODE_OPTIONS=--max_old_space_size=8000
+# FIXED: Limit Nx parallel workers to prevent memory exhaustion / SIGINT 130 status
+ENV NX_PARALLEL=2
 
 WORKDIR /tmp/grafana
 
