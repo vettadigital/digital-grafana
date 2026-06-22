@@ -73,6 +73,18 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
 
   console.log('params:', locationService.getSearchObject());
 
+  //TODO: change how to check if view or edit mode
+  const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
+  if (dashboard) {
+    const {isEditing, canEdit, isViewingPanel, isPlaying, editable } = dashboard.useState();
+
+    console.log({ isViewing, isEditing, canEdit, isViewingPanel, isPlaying, editable });
+    if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
+      console.log('Entering edit mode');
+      dashboard.onEnterEditMode();
+    }
+  }
+
   useEffect(() => {
     window.addEventListener('message', handleFilterDashboard, false);
 
