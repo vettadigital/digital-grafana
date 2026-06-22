@@ -71,6 +71,8 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
     }, 100);
   }, []);
 
+  console.log('params:', locationService.getSearchObject());
+
   useEffect(() => {
     window.addEventListener('message', handleFilterDashboard, false);
 
