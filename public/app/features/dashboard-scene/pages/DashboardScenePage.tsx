@@ -75,7 +75,10 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
 
   //TODO: change how to check if view or edit mode
   const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
+  console.log({isViewing, dashboard});
   if (dashboard) {
+    console.log('dashboard found');
+    console.log('dashboard state:', dashboard.useState());
     const {isEditing, canEdit, isViewingPanel, isPlaying, editable } = dashboard.useState();
 
     console.log({ isViewing, isEditing, canEdit, isViewingPanel, isPlaying, editable });
