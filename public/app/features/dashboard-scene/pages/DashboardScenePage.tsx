@@ -78,8 +78,8 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
   console.log({isViewing, dashboard});
   if (dashboard) {
     console.log('dashboard found');
-    console.log('dashboard state:', dashboard.useState());
-    const {isEditing, canEdit, isViewingPanel, isPlaying, editable } = dashboard.useState();
+    console.log('dashboard state:', dashboard.state);
+    const {isEditing, canEdit, isViewingPanel, isPlaying, editable } = dashboard.state;
 
     console.log({ isViewing, isEditing, canEdit, isViewingPanel, isPlaying, editable });
     if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
