@@ -71,19 +71,13 @@ export function DashboardScenePage({ route, queryParams, location }: Props) {
     }, 100);
   }, []);
 
-  console.log('params:', locationService.getSearchObject());
 
   //TODO: change how to check if view or edit mode
   const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
-  console.log({isViewing, dashboard});
   if (dashboard) {
-    console.log('dashboard found');
-    console.log('dashboard state:', dashboard.state);
-    const {isEditing, canEdit, isViewingPanel, isPlaying, editable } = dashboard.state;
+    const {isEditing, isViewingPanel, isPlaying, editable } = dashboard.state;
 
-    console.log({ isViewing, isEditing, canEdit, isViewingPanel, isPlaying, editable });
     if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
-      console.log('Entering edit mode');
       dashboard.onEnterEditMode();
     }
   }

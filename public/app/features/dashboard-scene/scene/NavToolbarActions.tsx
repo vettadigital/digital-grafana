@@ -104,9 +104,7 @@ export function ToolbarActions({ dashboard }: Props) {
 
   const isViewing = window.parent.location.pathname.split('/').pop() === 'view';
 
-  console.log({ isViewing, isEditing, canEdit, isViewingPanel, isPlaying, editable });
   if (!isViewing && !isEditing && dashboard.canEditDashboard() && !isViewingPanel && !isPlaying && editable) {
-    console.log('Entering edit mode');
     dashboard.onEnterEditMode();
   }
 
